@@ -2,6 +2,8 @@
 .thumbs.db
 node_modules
 
+/quasar.config.*.temporary.compiled*
+
 # Cordova related directories and files
 /src-cordova/node_modules
 /src-cordova/platforms
