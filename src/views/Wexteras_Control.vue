@@ -62,19 +62,10 @@
       </div>
       <div v-if="hatchData" :style="getColor(hatchData.status)">
         <label>Hatch</label>
-        <p>Status: {{ hatchData.status ? 'open' : 'closed' }}</p>
+        <p>Status: {{ hatchData.status ? 'on' : 'off' }}</p>
         <button @click="toggleHatchStatus" :style="btnColor(hatchData.status)" style="width: 75%">
           ⏻
         </button>
-        <p v-if="hatchData.status">Gap: {{ hatchData.power }}</p>
-        <input
-          v-if="hatchData.status"
-          type="range"
-          v-model.number="hatchData.power"
-          min="0"
-          max="100"
-          @change="updateHatchPower"
-        />
       </div>
     </div>
   </div>
@@ -143,14 +134,6 @@ export default {
         this.hatchData.status = newStatus
       } catch (error) {
         console.error('Error toggling hatch status:', error)
-      }
-    },
-    async updateHatchPower() {
-      try {
-        await set(ref(db, '/hatch/power'), this.hatchData.power)
-        console.log(`Hatch power updated to: ${this.hatchData.power}`)
-      } catch (error) {
-        console.error('Error updating hatch gap:', error)
       }
     },
     getColor(status) {

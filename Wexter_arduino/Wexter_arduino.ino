@@ -6,7 +6,7 @@
 
 // Sensor
 AM2320 am2320_sensor;
-Servo shutterServo;
+Servo continuousServo; // Continuous rotation servo
 
 // Pin definitions
 const int motorControlPin = D1;  // PWM pin connected to the motor controller (blue contacts on base card)
@@ -25,15 +25,27 @@ FirebaseConfig firebaseConfig;
 FirebaseAuth firebaseAuth;
 
 bool wasConnected = false;
-int currentServoAngle = 0; // Track the current position of the servo
+bool hatchStatus = false; // Tracks the current status of the hatch
+unsigned long hatchStartTime = 0; // Tracks when the hatch was turned on/off
+const unsigned long hatchDuration = 5000; // Duration for hatch rotation (5 seconds)
+
+void connectToWiFi() {
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("Connecting to Wi-Fi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected to Wi-Fi");
+}
 
 void setup() {
   Serial.begin(9600);
-  Wire.begin(14, 12);
+  Wire.begin(D6, D5); // Initialize I2C communication on D6 (SCL) and D5 (SDA)
 
   pinMode(motorControlPin, OUTPUT);
 
-  shutterServo.attach(D2); // Attach micro servo SG90 to pin D2
+  continuousServo.attach(D2); // Attach continuous rotation servo to pin D2
 
   // Configure Firebase
   firebaseConfig.host = FIREBASE_HOST;
@@ -57,76 +69,81 @@ void loop() {
     connectToWiFi(); // Attempt reconnection
   }
 
-  // Read Firebase paths for fan and shutter
-  if (Firebase.getBool(firebaseData, "/fan/status")) {
-    bool fanStatus = firebaseData.boolData();
-    if (fanStatus) {
-      if (Firebase.getInt(firebaseData, "/fan/power")) {
-        int fanPower = firebaseData.intData();
-        analogWrite(motorControlPin, map(fanPower, 0, 100, 0, 255));
-        Serial.print("Fan power set to: ");
-        Serial.println(fanPower);
-      } else {
-        Serial.println("Failed to read fan power: " + firebaseData.errorReason());
-      }
-    } else {
-      analogWrite(motorControlPin, 0); // Turn off the motor
-      Serial.println("Fan is off.");
-    }
-  } else {
-    Serial.println("Failed to read fan status: " + firebaseData.errorReason());
-  }
-
+  // Read Firebase path for hatch status
   if (Firebase.getBool(firebaseData, "/hatch/status")) {
-    bool shutterStatus = firebaseData.boolData();
-    if (shutterStatus) {
-      if (Firebase.getInt(firebaseData, "/hatch/power")) {
-        int shutterPower = constrain(firebaseData.intData(), 0, 100); // Ensure power is within 0-100 range
-        int targetServoAngle = constrain(map(shutterPower, 0, 100, 0, 180), 0, 180); // Map 0% to 0° and 100% to 180°
-        moveServoToPosition(targetServoAngle, 5); // Faster movement
-        Serial.print("Hatch moving to position: ");
-        Serial.println(targetServoAngle);
+    bool newHatchStatus = firebaseData.boolData();
+    if (newHatchStatus != hatchStatus) {
+      hatchStatus = newHatchStatus;
+      hatchStartTime = millis(); // Record the start time
+      if (hatchStatus) {
+        // Turn hatch on (rotate full power clockwise for 5 seconds)
+        continuousServo.write(180); // Rotate servo clockwise at full speed
+        Serial.println("Hatch turned on. Rotating clockwise for 5 seconds...");
       } else {
-        Serial.println("Failed to read hatch power: " + firebaseData.errorReason());
+        // Turn hatch off (rotate full power counterclockwise for 5 seconds)
+        continuousServo.write(0); // Rotate servo counterclockwise at full speed
+        Serial.println("Hatch turned off. Rotating counterclockwise for 5 seconds...");
       }
-    } else {
-      moveServoToPosition(0, 5); // Gradually return to 0° when hatch is off
-      Serial.println("Hatch is off. Returning to 0°.");
     }
   } else {
     Serial.println("Failed to read hatch status: " + firebaseData.errorReason());
   }
 
+  // Stop the servo after 5 seconds if the hatch is on or off
+  if (hatchStartTime > 0 && millis() - hatchStartTime >= hatchDuration) {
+    continuousServo.write(90); // Stop the servo (neutral position)
+    hatchStartTime = 0; // Reset the timer
+    Serial.println("Hatch rotation complete. Stopping servo.");
+  }
+
+  // Read Firebase path for motor status and power
+  if (Firebase.getBool(firebaseData, "/fan/status")) {
+    bool motorStatus = firebaseData.boolData();
+    if (Firebase.getInt(firebaseData, "/fan/power")) {
+      int motorPower = firebaseData.intData();
+      if (motorStatus) {
+        // Turn motor on with the specified power level
+        analogWrite(motorControlPin, map(motorPower, 0, 100, 0, 255)); // Map 0-100% to 0-255 PWM
+        Serial.print("Motor turned on. Power level: ");
+        Serial.println(motorPower);
+      } else {
+        // Turn motor off
+        analogWrite(motorControlPin, 0); // Set PWM to 0 (off)
+        Serial.println("Motor turned off.");
+      }
+    } else {
+      Serial.println("Failed to read motor power: " + firebaseData.errorReason());
+    }
+  } else {
+    Serial.println("Failed to read motor status: " + firebaseData.errorReason());
+  }
+
+  // Read and send sensor data
+  readAndSendSensorData();
+
   delay(100); // Small delay to avoid rapid polling
 }
 
-void moveServoToPosition(int targetAngle, int speed) {
-  while (currentServoAngle != targetAngle) {
-    if (currentServoAngle < targetAngle) {
-      currentServoAngle++;
-    } else if (currentServoAngle > targetAngle) {
-      currentServoAngle--;
+void readAndSendSensorData() {
+  if (am2320_sensor.measure()) {
+    float temperature = am2320_sensor.getTemperature();
+    float humidity = am2320_sensor.getHumidity();
+
+    if (Firebase.setFloat(firebaseData, "/current/temperature", temperature)) {
+      Serial.print("Temperature sent: ");
+      Serial.println(temperature);
+    } else {
+      Serial.println("Failed to send temperature: " + firebaseData.errorReason());
     }
-    shutterServo.write(currentServoAngle);
-    delay(speed); // Faster movement with reduced delay
-  }
-}
 
-void connectToWiFi() {
-  Serial.print("Connecting to Wi-Fi...");
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  unsigned long startTime = millis();
-
-  while (WiFi.status() != WL_CONNECTED && millis() - startTime < 60000) {
-    delay(500);
-    Serial.print(".");
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\nConnected to Wi-Fi");
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());
+    if (Firebase.setFloat(firebaseData, "/current/humidity", humidity)) {
+      Serial.print("Humidity sent: ");
+      Serial.println(humidity);
+    } else {
+      Serial.println("Failed to send humidity: " + firebaseData.errorReason());
+    }
   } else {
-    Serial.println("\nFailed to connect to Wi-Fi within timeout.");
+    Serial.println("Failed to read from AM2320 sensor.");
   }
+  delay(5000); // Delay to avoid rapid sensor polling
 }
