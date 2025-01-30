@@ -6,17 +6,16 @@
       height: 100%;
       flex-direction: column;
       justify-content: space-evenly;
+      align-items: center;
     "
   >
+    <!-- Sensor Data Display -->
     <div
       style="
         display: flex;
         width: 70%;
         height: auto;
         background-color: rgb(254, 254, 254);
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: top center;
         border-radius: 3rem;
         border: 3px solid rgba(43, 62, 52, 1);
         flex-direction: row;
@@ -31,6 +30,76 @@
         Humidity: <span>{{ currentData?.humidity || 'N/A' }}%</span>
       </p>
     </div>
+
+    <!-- Input Fields for Thresholds -->
+    <div
+      style="
+        display: flex;
+        width: 40%;
+        height: auto;
+        background-color: rgb(254, 254, 254);
+        border-radius: 2rem;
+        border: 3px solid rgba(43, 62, 52, 1);
+        flex-direction: column;
+        justify-content: space-evenly;
+        font-size: 1rem;
+        padding: 0.8rem;
+        margin-top: 1rem;
+      "
+    >
+      <label for="tempThreshold">Temperature Threshold (°C):</label>
+      <input
+        type="number"
+        id="tempThreshold"
+        v-model.number="tempThreshold"
+        @focus="animateInput"
+        @blur="resetInput"
+        style="
+          width: 100%;
+          padding: 0.4rem;
+          border-radius: 0.5rem;
+          border: 1px solid rgba(43, 62, 52, 1);
+          transition: all 0.3s ease;
+        "
+      />
+
+      <label for="humThreshold" style="margin-top: 0.5rem;">Humidity Threshold (%):</label>
+      <input
+        type="number"
+        id="humThreshold"
+        v-model.number="humThreshold"
+        @focus="animateInput"
+        @blur="resetInput"
+        style="
+          width: 100%;
+          padding: 0.4rem;
+          border-radius: 0.5rem;
+          border: 1px solid rgba(43, 62, 52, 1);
+          transition: all 0.3s ease;
+        "
+      />
+
+      <button
+        @click="applyThresholds"
+        @mousedown="animateButton"
+        @mouseup="resetButton"
+        @mouseleave="resetButton"
+        style="
+          margin-top: 1rem;
+          padding: 0.5rem;
+          border-radius: 1rem;
+          border: 1px solid rgba(43, 62, 52, 1);
+          background-color: rgba(94, 175, 91, 1);
+          color: white;
+          font-weight: bold;
+          transition: all 0.2s ease;
+        "
+      >
+        Apply Thresholds
+      </button>
+    </div>
+
+    <!-- Fan and Hatch Controls -->
     <div
       style="
         display: flex;
@@ -50,7 +119,7 @@
         >
           ⏻
         </button>
-        <p v-if="fanData.status">Power: {{ fanData.power }}</p>
+        <p v-if="fanData.status">Power: {{ fanData.power }}%</p>
         <input
           v-if="fanData.status"
           type="range"
@@ -72,12 +141,7 @@
 </template>
 
 <script>
-import {
-  ref,
-  set,
-  get,
-  onValue,
-} from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js'
+import { ref, set, get, onValue } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js'
 import { db } from '../boot/firebase.js'
 
 export default {
@@ -87,6 +151,8 @@ export default {
       fanData: null,
       hatchData: null,
       currentData: { temperature: 'N/A', humidity: 'N/A' },
+      tempThreshold: null,
+      humThreshold: null,
     }
   },
   methods: {
@@ -167,6 +233,7 @@ export default {
           (snapshot) => {
             if (snapshot.exists()) {
               this.currentData = snapshot.val()
+              this.checkThresholds()
             } else {
               this.currentData = { temperature: 'N/A', humidity: 'N/A' }
             }
@@ -178,6 +245,54 @@ export default {
       } catch (error) {
         console.error('Error setting up real-time listener:', error)
       }
+    },
+    async applyThresholds() {
+      this.checkThresholds()
+    },
+    async checkThresholds() {
+      if (this.tempThreshold !== null && this.humThreshold !== null) {
+        const currentTemp = this.currentData.temperature
+        const currentHum = this.currentData.humidity
+
+        // Control fan based on temperature
+        if (currentTemp > this.tempThreshold) {
+          const tempDifference = currentTemp - this.tempThreshold
+          let fanPower = Math.min(100, Math.max(40, (tempDifference / 10) * 100))
+          fanPower = Math.round(fanPower) 
+
+          if (!this.fanData.status) {
+            await this.toggleFanStatus()
+          }
+
+          this.fanData.power = fanPower
+          await this.updateFanPower()
+        } else if (this.fanData.status) {
+          await this.toggleFanStatus()
+        }
+
+        // Control hatch based on humidity
+        if (currentHum > this.humThreshold) {
+          if (!this.hatchData.status) {
+            await this.toggleHatchStatus()
+          }
+        } else if (this.hatchData.status) {
+          await this.toggleHatchStatus()
+        }
+      }
+    },
+    animateInput(event) {
+      event.target.style.transform = 'scale(1.05)'
+      event.target.style.boxShadow = '0 0 8px rgba(94, 175, 91, 0.6)'
+    },
+    resetInput(event) {
+      event.target.style.transform = 'scale(1)'
+      event.target.style.boxShadow = 'none'
+    },
+    animateButton(event) {
+      event.target.style.transform = 'scale(0.95)'
+    },
+    resetButton(event) {
+      event.target.style.transform = 'scale(1)'
     },
   },
   created() {

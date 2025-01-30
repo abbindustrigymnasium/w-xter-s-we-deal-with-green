@@ -41,7 +41,7 @@ void connectToWiFi() {
 
 void setup() {
   Serial.begin(9600);
-  Wire.begin(D6, D5); // Initialize I2C communication on D6 (SCL) and D5 (SDA)
+  Wire.begin(D6, D5); 
 
   pinMode(motorControlPin, OUTPUT);
 
@@ -102,10 +102,11 @@ void loop() {
     if (Firebase.getInt(firebaseData, "/fan/power")) {
       int motorPower = firebaseData.intData();
       if (motorStatus) {
-        // Turn motor on with the specified power level
-        analogWrite(motorControlPin, map(motorPower, 0, 100, 0, 255)); // Map 0-100% to 0-255 PWM
+        // Ensure motor power is at least 40 (except when 0)
+        int adjustedPower = (motorPower > 0 && motorPower < 40) ? 40 : motorPower;
+        analogWrite(motorControlPin, map(adjustedPower, 0, 100, 0, 255)); // Map 0-100% to 0-255 PWM
         Serial.print("Motor turned on. Power level: ");
-        Serial.println(motorPower);
+        Serial.println(adjustedPower);
       } else {
         // Turn motor off
         analogWrite(motorControlPin, 0); // Set PWM to 0 (off)
