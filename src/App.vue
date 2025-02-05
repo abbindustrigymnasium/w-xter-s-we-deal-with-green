@@ -2,7 +2,7 @@
   <div id="app">
     <nav>
       <router-link class="naver" to="/">Home</router-link>
-      <router-link class="naver" to="/home">Overview</router-link>
+      <router-link class="naver" to="/controls">Overview</router-link>
       <router-link class="naver" to="/about">About Us</router-link>
     </nav>
 
@@ -18,6 +18,11 @@
 * {
   font-family: 'Varela Round', sans-serif;
   color: rgba(43, 62, 52, 1);
+  margin: 0;
+}
+
+p {
+  margin: 0;
 }
 
 html,

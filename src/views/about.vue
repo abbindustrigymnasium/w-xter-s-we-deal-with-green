@@ -15,35 +15,42 @@
       </h1>
     </div>
     <div style="display: flex; flex-direction: row; justify-content: space-evenly">
-      <div class="image-container" @mouseover="hoverImage(0)" @mouseleave="resetImage(0)">
+      <div class="image-container">
         <img :src="images[0]" alt="Davitspic" class="image" />
         <div class="overlay">
-          <p class="overlay-text">
-            Greetings my fellow kin. I have been bestowed the name Davit by my parents and I would
-            dare say that I love programming.
-          </p>
+          <p class="overlay-text">Davit Durgaryan<br />16 years old<br />I like programming</p>
         </div>
       </div>
-      <div class="image-container" @mouseover="hoverImage(1)" @mouseleave="resetImage(1)">
+      <div class="image-container">
         <img :src="images[1]" alt="Robinspic" class="image" />
         <div class="overlay">
-          <p class="overlay-text">What marvelous times! My name is Robin and I like technology!</p>
+          <p class="overlay-text">Robin Holmström<br />16 years old<br />I like technology</p>
         </div>
       </div>
-      <div class="image-container" @mouseover="hoverImage(2)" @mouseleave="resetImage(2)">
+      <div class="image-container">
         <img :src="images[2]" alt="Alvinspic" class="image" />
         <div class="overlay">
-          <p class="overlay-text">Alvin's text here</p>
+          <p class="overlay-text">Alvin Gustafsson<br />16 years old<br />I like hardware</p>
         </div>
       </div>
     </div>
-    <div>
-      <p style="text-align: center; width: 50%; font-size: larger">
-        Hello! We are group number 8 and consist of three people; <span>Davit Durgaryan</span>,
-        <span>Robin Holmström</span> and <span>Alvin Gustafsson</span>. This project not only
-        thaught us a lot but also made us closer to each other as we barely had any prior contact.
-        Yet it didn't stop us from performing and completing this project.
-      </p>
+    <div style="display: flex; flex-direction: row; height: 40%">
+      <div>
+        <p style="text-align: center; font-size: larger">
+          Hello! We are group number 8 and consist of three people; <span>Davit Durgaryan</span>,
+          <span>Robin Holmström</span> and <span>Alvin Gustafsson</span>. This project not only
+          thaught us a lot but also made us closer to each other as we barely had any prior contact.
+          Yet it didn't stop us from performing and completing this project.
+        </p>
+      </div>
+      <div>
+        <p style="border: 3px solid rgba(43, 62, 52, 1)">
+          <b>Davit Durgaryan</b><br /><b>Email:</b>
+          davit.durgaryan@hitachigymnasiet.se<br /><br /><b>Robin Holmström</b><br /><b>Email:</b>
+          robin.holmstrom@hitachigymnasiet.se<br /><br /><b>Alvin Gustafsson</b><br /><b>Email:</b>
+          alvin.gustafsson@hitachigymnasiet.se
+        </p>
+      </div>
     </div>
   </div>
 </template>
@@ -54,14 +61,9 @@ export default {
   data() {
     return {
       images: [
-        '../assets/Davit.jpg', // Default image for Davit
-        '../assets/Robin2.jpg', // Default image for Robin
-        'https://cdn.pixabay.com/photo/2024/03/28/04/22/ai-generated-8660235_640.png', // Default image for Alvin
-      ],
-      hoverImages: [
-        '../assets/Davit_hover.jpg', // Hover image for Davit
-        '../assets/Robin_hover.jpg', // Hover image for Robin
-        'https://cdn.pixabay.com/photo/2024/03/28/05/22/ai-generated-8670235_640.png', // Hover image for Alvin
+        'https://logos-world.net/wp-content/uploads/2023/02/JavaScript-Logo.png',
+        'https://icons.iconarchive.com/icons/dakirby309/simply-styled/256/Autodesk-Inventor-icon.png',
+        'https://cdn.worldvectorlogo.com/logos/arduino-1.svg',
       ],
     }
   },
@@ -110,6 +112,7 @@ span {
   transition: opacity 0.3s ease;
   padding: 2%;
   pointer-events: none;
+  border: 3px solid rgb(43, 62, 52);
 }
 
 .overlay-text {

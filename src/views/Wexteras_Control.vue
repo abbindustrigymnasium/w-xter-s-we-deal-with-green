@@ -9,18 +9,18 @@
       align-items: center;
     "
   >
-    <!-- Sensor Data Display -->
     <div
       style="
         display: flex;
         width: 70%;
-        height: auto;
+        height: 25%;
         background-color: rgb(254, 254, 254);
         border-radius: 3rem;
         border: 3px solid rgba(43, 62, 52, 1);
         flex-direction: row;
         justify-content: space-evenly;
-        font-size: 2rem;
+        text-align: center;
+        font-size: var(--bob-font-size);
       "
     >
       <p class="overviewTxt">
@@ -30,8 +30,6 @@
         Humidity: <span>{{ currentData?.humidity || 'N/A' }}%</span>
       </p>
     </div>
-
-    <!-- Input Fields for Thresholds -->
     <div
       style="
         display: flex;
@@ -54,6 +52,8 @@
         v-model.number="tempThreshold"
         @focus="animateInput"
         @blur="resetInput"
+        max="56.7"
+        min="-273"
         style="
           width: 100%;
           padding: 0.4rem;
@@ -63,13 +63,16 @@
         "
       />
 
-      <label for="humThreshold" style="margin-top: 0.5rem;">Humidity Threshold (%):</label>
+      <label for="humThreshold" style="margin-top: 0.5rem">Humidity Threshold (%):</label>
       <input
         type="number"
         id="humThreshold"
         v-model.number="humThreshold"
         @focus="animateInput"
         @blur="resetInput"
+        min="0"
+        max="100"
+        maxlength="3"
         style="
           width: 100%;
           padding: 0.4rem;
@@ -90,7 +93,6 @@
           border-radius: 1rem;
           border: 1px solid rgba(43, 62, 52, 1);
           background-color: rgba(94, 175, 91, 1);
-          color: white;
           font-weight: bold;
           transition: all 0.2s ease;
         "
@@ -98,8 +100,6 @@
         Apply Thresholds
       </button>
     </div>
-
-    <!-- Fan and Hatch Controls -->
     <div
       style="
         display: flex;
@@ -130,26 +130,46 @@
         />
       </div>
       <div v-if="hatchData" :style="getColor(hatchData.status)">
-        <label>Hatch</label>
-        <p>Status: {{ hatchData.status ? 'on' : 'off' }}</p>
+        <label>Door</label>
+        <p>Status: {{ hatchData.status ? 'open' : 'closed' }}</p>
         <button @click="toggleHatchStatus" :style="btnColor(hatchData.status)" style="width: 75%">
           ⏻
         </button>
+      </div>
+      <div v-if="pumpData" :style="getColor(pumpData.status)">
+        <label>Pump</label>
+        <p>Status: {{ pumpData.status ? 'on' : 'off' }}</p>
+        <button
+          @click="togglePumpStatus"
+          :style="btnColor(pumpData.status)"
+          style="width: 75%; box-sizing: border-box"
+        >
+          ⏻
+        </button>
+        <p v-if="pumpData.status">Power: {{ pumpData.power }}%</p>
+        <input
+          v-if="pumpData.status"
+          type="range"
+          v-model.number="pumpData.power"
+          min="0"
+          max="100"
+          @change="updatePumpPower"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, set, get, onValue } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js'
-import { db } from '../boot/firebase.js'
+import { ref, set, get, onValue, db } from '../boot/firebase.js'
 
 export default {
-  name: 'index-page',
+  name: 'controls-page',
   data() {
     return {
       fanData: null,
       hatchData: null,
+      pumpData: null,
       currentData: { temperature: 'N/A', humidity: 'N/A' },
       tempThreshold: null,
       humThreshold: null,
@@ -176,6 +196,16 @@ export default {
         console.error('Error fetching hatch data:', error)
       }
     },
+    async fetchPumpData() {
+      try {
+        const snapshot = await get(ref(db, '/pump'))
+        if (snapshot.exists()) {
+          this.pumpData = snapshot.val()
+        }
+      } catch (error) {
+        console.error('Error fetching pump data:', error)
+      }
+    },
     async toggleFanStatus() {
       try {
         const newStatus = this.fanData.status === true ? false : true
@@ -200,6 +230,23 @@ export default {
         this.hatchData.status = newStatus
       } catch (error) {
         console.error('Error toggling hatch status:', error)
+      }
+    },
+    async togglePumpStatus() {
+      try {
+        const newStatus = this.pumpData.status === true ? false : true
+        await set(ref(db, '/pump/status'), newStatus)
+        this.pumpData.status = newStatus
+      } catch (error) {
+        console.error('Error toggling pump status:', error)
+      }
+    },
+    async updatePumpPower() {
+      try {
+        await set(ref(db, '/pump/power'), this.pumpData.power)
+        console.log(`Pump power updated to: ${this.pumpData.power}`)
+      } catch (error) {
+        console.error('Error updating pump power:', error)
       }
     },
     getColor(status) {
@@ -254,11 +301,10 @@ export default {
         const currentTemp = this.currentData.temperature
         const currentHum = this.currentData.humidity
 
-        // Control fan based on temperature
         if (currentTemp > this.tempThreshold) {
           const tempDifference = currentTemp - this.tempThreshold
           let fanPower = Math.min(100, Math.max(40, (tempDifference / 10) * 100))
-          fanPower = Math.round(fanPower) 
+          fanPower = Math.round(fanPower)
 
           if (!this.fanData.status) {
             await this.toggleFanStatus()
@@ -270,7 +316,6 @@ export default {
           await this.toggleFanStatus()
         }
 
-        // Control hatch based on humidity
         if (currentHum > this.humThreshold) {
           if (!this.hatchData.status) {
             await this.toggleHatchStatus()
@@ -298,7 +343,25 @@ export default {
   created() {
     this.fetchFanData()
     this.fetchHatchData()
+    this.fetchPumpData()
     this.watchCurrentData()
   },
 }
 </script>
+
+<style>
+:root {
+  --bob-font-size: 3rem;
+}
+
+@media (max-width: 1250px) {
+  :root {
+    --bob-font-size: 2rem;
+  }
+}
+@media (max-width: 600px) {
+  :root {
+    --bob-font-size: 1rem;
+  }
+}
+</style>
