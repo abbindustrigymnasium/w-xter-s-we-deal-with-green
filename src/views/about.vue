@@ -78,8 +78,7 @@ export default {
 }
 </script>
 
-<style>
-/* Same styles as before */
+<style scoped>
 span {
   font-weight: bold;
 }
