@@ -72,7 +72,7 @@ export default {
       this.images[index] = this.hoverImages[index]
     },
     resetImage(index) {
-      this.images[index] = this.hoverImages[index].replace('_hover', '') // Reset logic
+      this.images[index] = this.hoverImages[index].replace('_hover', '')
     },
   },
 }

@@ -136,12 +136,12 @@
           ⏻
         </button>
       </div>
-      <div v-if="pumpData" :style="getColor(pumpData.status)">
+      <div v-if="pumpData" :style="getColor(pumpIsScheduled)">
         <label>Pump</label>
-        <p>Status: {{ pumpData.status ? 'on' : 'off' }}</p>
+        <p>Status: {{ pumpIsScheduled ? 'on' : 'off' }}</p>
         <button
           @click="togglePumpStatus"
-          :style="btnColor(pumpData.status)"
+          :style="btnColor(pumpIsScheduled)"
           style="width: 75%; box-sizing: border-box"
         >
           ⏻
@@ -173,6 +173,8 @@ export default {
       currentData: { temperature: 'N/A', humidity: 'N/A' },
       tempThreshold: null,
       humThreshold: null,
+      pumpIsScheduled: false,
+      pumpTimeoutId: null,
     }
   },
   methods: {
@@ -201,6 +203,23 @@ export default {
         const snapshot = await get(ref(db, '/pump'))
         if (snapshot.exists()) {
           this.pumpData = snapshot.val()
+          this.pumpIsScheduled = this.pumpData.scheduled || false
+
+          const nextActivationTime = this.pumpData.nextActivationTime
+          const now = Date.now()
+
+          if (this.pumpIsScheduled) {
+            if (nextActivationTime && nextActivationTime > now) {
+              const delay = nextActivationTime - now
+              this.pumpTimeoutId = setTimeout(() => {
+                this.activatePumpForDuration(10000)
+                this.scheduleNextPumpCycle()
+              }, delay)
+            } else {
+              await this.activatePumpForDuration(10000)
+              this.scheduleNextPumpCycle()
+            }
+          }
         }
       } catch (error) {
         console.error('Error fetching pump data:', error)
@@ -234,13 +253,54 @@ export default {
     },
     async togglePumpStatus() {
       try {
-        const newStatus = this.pumpData.status === true ? false : true
-        await set(ref(db, '/pump/status'), newStatus)
-        this.pumpData.status = newStatus
+        const newScheduledState = !this.pumpIsScheduled
+        this.pumpIsScheduled = newScheduledState
+        // Update scheduled state in Firebase
+        await set(ref(db, '/pump/scheduled'), newScheduledState)
+
+        if (newScheduledState) {
+          // Start the pump cycle
+          await this.activatePumpForDuration(10000)
+          this.scheduleNextPumpCycle()
+        } else {
+          // Clear scheduled cycles and turn off pump
+          clearTimeout(this.pumpTimeoutId)
+          await set(ref(db, '/pump/status'), false)
+        }
       } catch (error) {
         console.error('Error toggling pump status:', error)
+        this.pumpIsScheduled = !this.pumpIsScheduled
       }
     },
+
+    async activatePumpForDuration(duration) {
+      try {
+        await set(ref(db, '/pump/status'), true)
+        setTimeout(async () => {
+          if (this.pumpIsScheduled) {
+            await set(ref(db, '/pump/status'), false)
+          }
+        }, duration)
+      } catch (error) {
+        console.error('Error activating pump:', error)
+      }
+    },
+
+    async scheduleNextPumpCycle() {
+      if (!this.pumpIsScheduled) return
+
+      const nextActivationTime = Date.now() + 24 * 60 * 60 * 1000 // 24 hours
+      await set(ref(db, '/pump/nextActivationTime'), nextActivationTime)
+
+      this.pumpTimeoutId = setTimeout(
+        () => {
+          this.activatePumpForDuration(10000)
+          this.scheduleNextPumpCycle()
+        },
+        24 * 60 * 60 * 1000,
+      )
+    },
+
     async updatePumpPower() {
       try {
         await set(ref(db, '/pump/power'), this.pumpData.power)
