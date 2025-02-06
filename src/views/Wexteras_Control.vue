@@ -11,10 +11,10 @@
     </div>
 
     <!-- Automation Controls -->
-    <div class="automation-grid">
+    <div class="upperRow">
       <!-- Fan Automation -->
-      <div class="automation-card">
-        <h3>Fan Automation</h3>
+      <div class="automation-boxes">
+        <h3>Fan Auto</h3>
         <label>
           <input type="checkbox" v-model="fanAutomation.enabled" @change="updateFanAutomation" />
           Enabled
@@ -28,8 +28,8 @@
       </div>
 
       <!-- Hatch Automation -->
-      <div class="automation-card">
-        <h3>Door Automation</h3>
+      <div class="automation-boxes">
+        <h3>Door Auto</h3>
         <label>
           <input
             type="checkbox"
@@ -47,8 +47,8 @@
       </div>
 
       <!-- Pump Automation -->
-      <div class="automation-card">
-        <h3>Pump Automation</h3>
+      <div class="automation-boxes">
+        <h3>Pump Auto</h3>
         <label>
           <input type="checkbox" v-model="pumpAutomation.enabled" @change="updatePumpAutomation" />
           Enabled
@@ -69,9 +69,9 @@
     </div>
 
     <!-- Device Controls -->
-    <div class="device-grid">
+    <div class="bottomRow">
       <!-- Fan Control -->
-      <div v-if="fanData" :style="getColor(fanData.status)" class="device-card">
+      <div v-if="fanData" :style="getColor(fanData.status)" class="device-boxes">
         <h3>Fan</h3>
         <p>Status: {{ fanData.status ? 'ON' : 'OFF' }}</p>
         <button @click="toggleFanStatus" :style="btnColor(fanData.status)">⏻</button>
@@ -88,14 +88,14 @@
       </div>
 
       <!-- Hatch Control -->
-      <div v-if="hatchData" :style="getColor(hatchData.status)" class="device-card">
+      <div v-if="hatchData" :style="getColor(hatchData.status)" class="device-boxes">
         <h3>Door</h3>
         <p>Status: {{ hatchData.status ? 'OPEN' : 'CLOSED' }}</p>
         <button @click="toggleHatchStatus" :style="btnColor(hatchData.status)">⏻</button>
       </div>
 
       <!-- Pump Control -->
-      <div v-if="pumpData" :style="getColor(pumpData.status)" class="device-card">
+      <div v-if="pumpData" :style="getColor(pumpData.status)" class="device-boxes">
         <h3>Pump</h3>
         <p>Status: {{ pumpData.status ? 'ON' : 'OFF' }}</p>
         <button @click="togglePumpStatus" :style="btnColor(pumpData.status)">⏻</button>
@@ -236,21 +236,12 @@ export default {
     getColor(status) {
       return {
         backgroundColor: status ? '#5EAF5B' : '#E57373',
-        border: '3px solid #2B3E34',
-        borderRadius: '3rem',
-        padding: '1rem',
-        width: '60%',
-        textAlign: 'center',
       }
     },
 
     btnColor(status) {
       return {
         backgroundColor: status ? '#E57373' : '#5EAF5B',
-        border: '2px solid #2B3E34',
-        borderRadius: '10rem',
-        padding: '0.5rem',
-        margin: '0.5rem',
       }
     },
 
@@ -289,7 +280,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 .container {
   display: flex;
   width: 100%;
@@ -297,103 +288,98 @@ export default {
   flex-direction: column;
   justify-content: space-evenly;
   align-items: center;
-  gap: 1.5rem;
-  padding: 1rem;
 }
 
 .sensor-display {
   display: flex;
   width: 50%;
   height: 10%;
-  background-color: white;
+  background-color: rgb(98, 193, 229);
   border-radius: 3rem;
-  border: 3px solid #2b3e34;
+  border: 3px solid rgba(43, 62, 52, 1);
   justify-content: space-evenly;
   align-items: center;
   text-align: center;
-  font-size: var(--bob-font-size);
 }
 
-.automation-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  width: 50%;
-  margin: 0;
-  height: 30%;
+.upperRow {
+  display: flex;
+  width: 100%;
+  height: 50%;
+  flex-direction: row;
+  justify-content: space-evenly;
 }
 
-.automation-card {
-  background: white;
-  border: 2px solid #2b3e34;
-  border-radius: 1.5rem;
-  padding: 1.2rem;
+.automation-boxes {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  justify-content: space-evenly;
+  width: 30%;
+  background: white;
+  border: 3px solid rgba(43, 62, 52, 1);
+  border-radius: 3rem;
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
 }
 
-.automation-card:hover {
+.automation-boxes:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.automation-card h3 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1rem;
-}
-
-.automation-card label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-}
-
-.automation-card input[type='number'] {
+.automation-boxes input[type='number'] {
   width: 100%;
-  padding: 0.4rem;
-  font-size: 0.9rem;
-}
-
-.device-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
-  width: 90%;
-  height: 50%;
-}
-
-.device-card {
   border-radius: 3rem;
-  padding: 1.5rem;
+}
+
+.automation-boxes h3 {
+  font-size: 200%;
+  text-align: center;
+}
+
+.bottomRow {
+  display: flex;
+  width: 100%;
+  height: 50%;
+  flex-direction: row;
+  justify-content: space-evenly;
+}
+
+.device-boxes {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  transition: transform 0.2s ease;
+  justify-content: space-evenly;
+  width: 30%;
+  border: 3px solid rgba(43, 62, 52, 1);
+  border-radius: 3rem;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.device-card:hover {
-  transform: scale(1.02);
+.device-boxes:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.device-boxes p {
+  font-size: 150%;
+  text-align: center;
 }
 
 button {
-  cursor: pointer;
-  border: none;
-  padding: 0.8rem 1.2rem;
-  border-radius: 2rem;
-  font-size: 1.2rem;
-  min-width: 60px;
-  min-height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  font-size: 200%;
+  width: 45%;
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 3px solid rgba(43, 62, 52, 1);
+  border-radius: 3rem;
 }
 
 button:hover {
@@ -403,16 +389,15 @@ button:hover {
 
 input[type='range'] {
   width: 100%;
-  margin-top: 0.5rem;
 }
 
-.overviewTxt {
-  margin: 0;
-  font-weight: 500;
+h3 {
+  font-weight: bold;
+  font-size: 250%;
 }
 
 .overviewTxt span {
   font-weight: 700;
-  color: #2b3e34;
+  color: rgba(43, 62, 52, 1);
 }
 </style>
