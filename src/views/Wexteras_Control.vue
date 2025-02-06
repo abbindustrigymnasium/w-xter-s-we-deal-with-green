@@ -1,28 +1,7 @@
 <template>
-  <div
-    style="
-      display: flex;
-      width: 100%;
-      height: 100%;
-      flex-direction: column;
-      justify-content: space-evenly;
-      align-items: center;
-    "
-  >
-    <div
-      style="
-        display: flex;
-        width: 70%;
-        height: 25%;
-        background-color: rgb(254, 254, 254);
-        border-radius: 3rem;
-        border: 3px solid rgba(43, 62, 52, 1);
-        flex-direction: row;
-        justify-content: space-evenly;
-        text-align: center;
-        font-size: var(--bob-font-size);
-      "
-    >
+  <div class="container">
+    <!-- Sensor Data Display -->
+    <div class="sensor-display">
       <p class="overviewTxt">
         Temperature: <span>{{ currentData?.temperature || 'N/A' }}°C</span>
       </p>
@@ -30,131 +9,106 @@
         Humidity: <span>{{ currentData?.humidity || 'N/A' }}%</span>
       </p>
     </div>
-    <div
-      style="
-        display: flex;
-        width: 40%;
-        height: auto;
-        background-color: rgb(254, 254, 254);
-        border-radius: 2rem;
-        border: 3px solid rgba(43, 62, 52, 1);
-        flex-direction: column;
-        justify-content: space-evenly;
-        font-size: 1rem;
-        padding: 0.8rem;
-        margin-top: 1rem;
-      "
-    >
-      <label for="tempThreshold">Temperature Threshold (°C):</label>
-      <input
-        type="number"
-        id="tempThreshold"
-        v-model.number="tempThreshold"
-        @focus="animateInput"
-        @blur="resetInput"
-        max="56.7"
-        min="-273"
-        style="
-          width: 100%;
-          padding: 0.4rem;
-          border-radius: 0.5rem;
-          border: 1px solid rgba(43, 62, 52, 1);
-          transition: all 0.3s ease;
-        "
-      />
 
-      <label for="humThreshold" style="margin-top: 0.5rem">Humidity Threshold (%):</label>
-      <input
-        type="number"
-        id="humThreshold"
-        v-model.number="humThreshold"
-        @focus="animateInput"
-        @blur="resetInput"
-        min="0"
-        max="100"
-        maxlength="3"
-        style="
-          width: 100%;
-          padding: 0.4rem;
-          border-radius: 0.5rem;
-          border: 1px solid rgba(43, 62, 52, 1);
-          transition: all 0.3s ease;
-        "
-      />
+    <!-- Automation Controls -->
+    <div class="automation-grid">
+      <!-- Fan Automation -->
+      <div class="automation-card">
+        <h3>Fan Automation</h3>
+        <label>
+          <input type="checkbox" v-model="fanAutomation.enabled" @change="updateFanAutomation" />
+          Enabled
+        </label>
+        <input
+          type="number"
+          v-model.number="fanAutomation.tempThreshold"
+          placeholder="Temp Threshold (°C)"
+          @change="updateFanAutomation"
+        />
+      </div>
 
-      <button
-        @click="applyThresholds"
-        @mousedown="animateButton"
-        @mouseup="resetButton"
-        @mouseleave="resetButton"
-        style="
-          margin-top: 1rem;
-          padding: 0.5rem;
-          border-radius: 1rem;
-          border: 1px solid rgba(43, 62, 52, 1);
-          background-color: rgba(94, 175, 91, 1);
-          font-weight: bold;
-          transition: all 0.2s ease;
-        "
-      >
-        Apply Thresholds
-      </button>
+      <!-- Hatch Automation -->
+      <div class="automation-card">
+        <h3>Door Automation</h3>
+        <label>
+          <input
+            type="checkbox"
+            v-model="hatchAutomation.enabled"
+            @change="updateHatchAutomation"
+          />
+          Enabled
+        </label>
+        <input
+          type="number"
+          v-model.number="hatchAutomation.humThreshold"
+          placeholder="Humidity Threshold (%)"
+          @change="updateHatchAutomation"
+        />
+      </div>
+
+      <!-- Pump Automation -->
+      <div class="automation-card">
+        <h3>Pump Automation</h3>
+        <label>
+          <input type="checkbox" v-model="pumpAutomation.enabled" @change="updatePumpAutomation" />
+          Enabled
+        </label>
+        <input
+          type="number"
+          v-model.number="pumpAutomation.duration"
+          placeholder="Duration (min)"
+          @change="updatePumpAutomation"
+        />
+        <input
+          type="number"
+          v-model.number="pumpAutomation.interval"
+          placeholder="Interval (min)"
+          @change="updatePumpAutomation"
+        />
+      </div>
     </div>
-    <div
-      style="
-        display: flex;
-        width: 100%;
-        height: 100%;
-        flex-direction: row;
-        justify-content: space-evenly;
-      "
-    >
-      <div v-if="fanData" :style="getColor(fanData.status)">
-        <label>Fan</label>
-        <p>Status: {{ fanData.status ? 'on' : 'off' }}</p>
-        <button
-          @click="toggleFanStatus"
-          :style="btnColor(fanData.status)"
-          style="width: 75%; box-sizing: border-box"
-        >
-          ⏻
-        </button>
-        <p v-if="fanData.status">Power: {{ fanData.power }}%</p>
-        <input
-          v-if="fanData.status"
-          type="range"
-          v-model.number="fanData.power"
-          min="0"
-          max="100"
-          @change="updateFanPower"
-        />
+
+    <!-- Device Controls -->
+    <div class="device-grid">
+      <!-- Fan Control -->
+      <div v-if="fanData" :style="getColor(fanData.status)" class="device-card">
+        <h3>Fan</h3>
+        <p>Status: {{ fanData.status ? 'ON' : 'OFF' }}</p>
+        <button @click="toggleFanStatus" :style="btnColor(fanData.status)">⏻</button>
+        <div v-if="fanData.status">
+          <p>Power: {{ fanData.power }}%</p>
+          <input
+            type="range"
+            v-model.number="fanData.power"
+            min="0"
+            max="100"
+            @change="updateFanPower"
+          />
+        </div>
       </div>
-      <div v-if="hatchData" :style="getColor(hatchData.status)">
-        <label>Door</label>
-        <p>Status: {{ hatchData.status ? 'open' : 'closed' }}</p>
-        <button @click="toggleHatchStatus" :style="btnColor(hatchData.status)" style="width: 75%">
-          ⏻
-        </button>
+
+      <!-- Hatch Control -->
+      <div v-if="hatchData" :style="getColor(hatchData.status)" class="device-card">
+        <h3>Door</h3>
+        <p>Status: {{ hatchData.status ? 'OPEN' : 'CLOSED' }}</p>
+        <button @click="toggleHatchStatus" :style="btnColor(hatchData.status)">⏻</button>
       </div>
-      <div v-if="pumpData" :style="getColor(pumpIsScheduled)">
-        <label>Pump</label>
-        <p>Status: {{ pumpIsScheduled ? 'on' : 'off' }}</p>
-        <button
-          @click="togglePumpStatus"
-          :style="btnColor(pumpIsScheduled)"
-          style="width: 75%; box-sizing: border-box"
-        >
-          ⏻
-        </button>
-        <p v-if="pumpData.status">Power: {{ pumpData.power }}%</p>
-        <input
-          v-if="pumpData.status"
-          type="range"
-          v-model.number="pumpData.power"
-          min="0"
-          max="100"
-          @change="updatePumpPower"
-        />
+
+      <!-- Pump Control -->
+      <div v-if="pumpData" :style="getColor(pumpData.status)" class="device-card">
+        <h3>Pump</h3>
+        <p>Status: {{ pumpData.status ? 'ON' : 'OFF' }}</p>
+        <button @click="togglePumpStatus" :style="btnColor(pumpData.status)">⏻</button>
+        <div v-if="pumpData.status">
+          <p>Power: {{ pumpData.power }}%</p>
+          <input
+            type="range"
+            v-model.number="pumpData.power"
+            min="0"
+            max="100"
+            @change="updatePumpPower"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -171,257 +125,294 @@ export default {
       hatchData: null,
       pumpData: null,
       currentData: { temperature: 'N/A', humidity: 'N/A' },
-      tempThreshold: null,
-      humThreshold: null,
-      pumpIsScheduled: false,
-      pumpTimeoutId: null,
+      fanAutomation: { enabled: false, tempThreshold: null },
+      hatchAutomation: { enabled: false, humThreshold: null },
+      pumpAutomation: { enabled: false, duration: null, interval: null },
     }
   },
   methods: {
-    async fetchFanData() {
+    // Firebase data fetching
+    async fetchDeviceData() {
       try {
-        const snapshot = await get(ref(db, '/fan'))
-        if (snapshot.exists()) {
-          this.fanData = snapshot.val()
-        }
+        const [fan, hatch, pump] = await Promise.all([
+          get(ref(db, '/fan')),
+          get(ref(db, '/hatch')),
+          get(ref(db, '/pump')),
+        ])
+
+        this.fanData = fan.exists() ? fan.val() : null
+        this.hatchData = hatch.exists() ? hatch.val() : null
+        this.pumpData = pump.exists() ? pump.val() : null
       } catch (error) {
-        console.error('Error fetching fan data:', error)
+        console.error('Error fetching device data:', error)
       }
     },
-    async fetchHatchData() {
+
+    async fetchAutomationSettings() {
       try {
-        const snapshot = await get(ref(db, '/hatch'))
-        if (snapshot.exists()) {
-          this.hatchData = snapshot.val()
+        const [fanAuto, hatchAuto, pumpAuto] = await Promise.all([
+          get(ref(db, '/automation/fan')),
+          get(ref(db, '/automation/hatch')),
+          get(ref(db, '/automation/pump')),
+        ])
+
+        if (fanAuto.exists()) {
+          this.fanAutomation = {
+            enabled: fanAuto.val().enabled,
+            tempThreshold: fanAuto.val().tempThreshold,
+          }
         }
-      } catch (error) {
-        console.error('Error fetching hatch data:', error)
-      }
-    },
-    async fetchPumpData() {
-      try {
-        const snapshot = await get(ref(db, '/pump'))
-        if (snapshot.exists()) {
-          this.pumpData = snapshot.val()
-          this.pumpIsScheduled = this.pumpData.scheduled || false
 
-          const nextActivationTime = this.pumpData.nextActivationTime
-          const now = Date.now()
+        if (hatchAuto.exists()) {
+          this.hatchAutomation = {
+            enabled: hatchAuto.val().enabled,
+            humThreshold: hatchAuto.val().humThreshold,
+          }
+        }
 
-          if (this.pumpIsScheduled) {
-            if (nextActivationTime && nextActivationTime > now) {
-              const delay = nextActivationTime - now
-              this.pumpTimeoutId = setTimeout(() => {
-                this.activatePumpForDuration(10000)
-                this.scheduleNextPumpCycle()
-              }, delay)
-            } else {
-              await this.activatePumpForDuration(10000)
-              this.scheduleNextPumpCycle()
-            }
+        if (pumpAuto.exists()) {
+          this.pumpAutomation = {
+            enabled: pumpAuto.val().enabled,
+            duration: pumpAuto.val().duration / 60000, // Convert ms to minutes
+            interval: pumpAuto.val().interval / 60000,
           }
         }
       } catch (error) {
-        console.error('Error fetching pump data:', error)
+        console.error('Error fetching automation settings:', error)
       }
     },
+
+    // Automation updates
+    async updateFanAutomation() {
+      await set(ref(db, '/automation/fan'), {
+        enabled: this.fanAutomation.enabled,
+        tempThreshold: this.fanAutomation.tempThreshold,
+      })
+    },
+
+    async updateHatchAutomation() {
+      await set(ref(db, '/automation/hatch'), {
+        enabled: this.hatchAutomation.enabled,
+        humThreshold: this.hatchAutomation.humThreshold,
+      })
+    },
+
+    async updatePumpAutomation() {
+      await set(ref(db, '/automation/pump'), {
+        enabled: this.pumpAutomation.enabled,
+        duration: this.pumpAutomation.duration * 60000, // Convert minutes to ms
+        interval: this.pumpAutomation.interval * 60000,
+      })
+    },
+
+    // Existing device control methods
     async toggleFanStatus() {
-      try {
-        const newStatus = this.fanData.status === true ? false : true
-        await set(ref(db, '/fan/status'), newStatus)
-        this.fanData.status = newStatus
-      } catch (error) {
-        console.error('Error toggling fan status:', error)
-      }
+      const newStatus = !this.fanData.status
+      await set(ref(db, '/fan/status'), newStatus)
+      this.fanData.status = newStatus
     },
+
     async updateFanPower() {
-      try {
-        await set(ref(db, '/fan/power'), this.fanData.power)
-        console.log(`Fan power updated to: ${this.fanData.power}`)
-      } catch (error) {
-        console.error('Error updating fan power:', error)
-      }
+      await set(ref(db, '/fan/power'), this.fanData.power)
     },
+
     async toggleHatchStatus() {
-      try {
-        const newStatus = this.hatchData.status === true ? false : true
-        await set(ref(db, '/hatch/status'), newStatus)
-        this.hatchData.status = newStatus
-      } catch (error) {
-        console.error('Error toggling hatch status:', error)
-      }
+      const newStatus = !this.hatchData.status
+      await set(ref(db, '/hatch/status'), newStatus)
+      this.hatchData.status = newStatus
     },
+
     async togglePumpStatus() {
-      try {
-        const newScheduledState = !this.pumpIsScheduled
-        this.pumpIsScheduled = newScheduledState
-        // Update scheduled state in Firebase
-        await set(ref(db, '/pump/scheduled'), newScheduledState)
-
-        if (newScheduledState) {
-          // Start the pump cycle
-          await this.activatePumpForDuration(10000)
-          this.scheduleNextPumpCycle()
-        } else {
-          // Clear scheduled cycles and turn off pump
-          clearTimeout(this.pumpTimeoutId)
-          await set(ref(db, '/pump/status'), false)
-        }
-      } catch (error) {
-        console.error('Error toggling pump status:', error)
-        this.pumpIsScheduled = !this.pumpIsScheduled
-      }
-    },
-
-    async activatePumpForDuration(duration) {
-      try {
-        await set(ref(db, '/pump/status'), true)
-        setTimeout(async () => {
-          if (this.pumpIsScheduled) {
-            await set(ref(db, '/pump/status'), false)
-          }
-        }, duration)
-      } catch (error) {
-        console.error('Error activating pump:', error)
-      }
-    },
-
-    async scheduleNextPumpCycle() {
-      if (!this.pumpIsScheduled) return
-
-      const nextActivationTime = Date.now() + 24 * 60 * 60 * 1000 // 24 hours
-      await set(ref(db, '/pump/nextActivationTime'), nextActivationTime)
-
-      this.pumpTimeoutId = setTimeout(
-        () => {
-          this.activatePumpForDuration(10000)
-          this.scheduleNextPumpCycle()
-        },
-        24 * 60 * 60 * 1000,
-      )
+      const newStatus = !this.pumpData.status
+      await set(ref(db, '/pump/status'), newStatus)
+      this.pumpData.status = newStatus
     },
 
     async updatePumpPower() {
-      try {
-        await set(ref(db, '/pump/power'), this.pumpData.power)
-        console.log(`Pump power updated to: ${this.pumpData.power}`)
-      } catch (error) {
-        console.error('Error updating pump power:', error)
-      }
+      await set(ref(db, '/pump/power'), this.pumpData.power)
     },
+
+    // Style methods
     getColor(status) {
       return {
-        color: 'rgba(43, 62, 52, 1)',
-        border: '3px solid rgba(43, 62, 52, 1)',
-        height: 'auto',
+        backgroundColor: status ? '#5EAF5B' : '#E57373',
+        border: '3px solid #2B3E34',
         borderRadius: '3rem',
-        fontWeight: 'bold',
-        fontSize: '1.5rem',
         padding: '1rem',
-        width: 'auto',
-        minWidth: '22%',
-        boxSizing: 'border-box',
-        backgroundColor: status ? 'rgba(94, 175, 91, 1)' : 'rgba(229, 115, 115, 1)',
+        width: '60%',
+        textAlign: 'center',
       }
     },
+
     btnColor(status) {
       return {
-        backgroundColor: status ? 'rgba(229, 115, 115, 1)' : 'rgba(94, 175, 91, 1)',
-        fontWeight: 'bold',
-        color: 'rgba(43, 62, 52, 1)',
-        borderRadius: '3rem',
+        backgroundColor: status ? '#E57373' : '#5EAF5B',
+        border: '2px solid #2B3E34',
+        borderRadius: '10rem',
+        padding: '0.5rem',
+        margin: '0.5rem',
       }
     },
-    watchCurrentData() {
-      try {
-        const currentRef = ref(db, '/current')
-        onValue(
-          currentRef,
-          (snapshot) => {
-            if (snapshot.exists()) {
-              this.currentData = snapshot.val()
-              this.checkThresholds()
-            } else {
-              this.currentData = { temperature: 'N/A', humidity: 'N/A' }
-            }
-          },
-          (error) => {
-            console.error('Error watching current data:', error)
-          },
-        )
-      } catch (error) {
-        console.error('Error setting up real-time listener:', error)
-      }
-    },
-    async applyThresholds() {
-      this.checkThresholds()
-    },
-    async checkThresholds() {
-      if (this.tempThreshold !== null && this.humThreshold !== null) {
-        const currentTemp = this.currentData.temperature
-        const currentHum = this.currentData.humidity
 
-        if (currentTemp > this.tempThreshold) {
-          const tempDifference = currentTemp - this.tempThreshold
-          let fanPower = Math.min(100, Math.max(40, (tempDifference / 10) * 100))
-          fanPower = Math.round(fanPower)
+    // Real-time updates
+    setupListeners() {
+      onValue(ref(db, '/current'), (snapshot) => {
+        this.currentData = snapshot.exists()
+          ? snapshot.val()
+          : { temperature: 'N/A', humidity: 'N/A' }
+      })
 
-          if (!this.fanData.status) {
-            await this.toggleFanStatus()
+      onValue(ref(db, '/automation/fan'), (snapshot) => {
+        if (snapshot.exists()) this.fanAutomation = snapshot.val()
+      })
+
+      onValue(ref(db, '/automation/hatch'), (snapshot) => {
+        if (snapshot.exists()) this.hatchAutomation = snapshot.val()
+      })
+
+      onValue(ref(db, '/automation/pump'), (snapshot) => {
+        if (snapshot.exists()) {
+          this.pumpAutomation = {
+            enabled: snapshot.val().enabled,
+            duration: snapshot.val().duration / 60000,
+            interval: snapshot.val().interval / 60000,
           }
-
-          this.fanData.power = fanPower
-          await this.updateFanPower()
-        } else if (this.fanData.status) {
-          await this.toggleFanStatus()
         }
-
-        if (currentHum > this.humThreshold) {
-          if (!this.hatchData.status) {
-            await this.toggleHatchStatus()
-          }
-        } else if (this.hatchData.status) {
-          await this.toggleHatchStatus()
-        }
-      }
-    },
-    animateInput(event) {
-      event.target.style.transform = 'scale(1.05)'
-      event.target.style.boxShadow = '0 0 8px rgba(94, 175, 91, 0.6)'
-    },
-    resetInput(event) {
-      event.target.style.transform = 'scale(1)'
-      event.target.style.boxShadow = 'none'
-    },
-    animateButton(event) {
-      event.target.style.transform = 'scale(0.95)'
-    },
-    resetButton(event) {
-      event.target.style.transform = 'scale(1)'
+      })
     },
   },
   created() {
-    this.fetchFanData()
-    this.fetchHatchData()
-    this.fetchPumpData()
-    this.watchCurrentData()
+    this.fetchDeviceData()
+    this.fetchAutomationSettings()
+    this.setupListeners()
   },
 }
 </script>
 
 <style>
-:root {
-  --bob-font-size: 3rem;
+.container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem;
 }
 
-@media (max-width: 1250px) {
-  :root {
-    --bob-font-size: 2rem;
-  }
+.sensor-display {
+  display: flex;
+  width: 50%;
+  height: 10%;
+  background-color: white;
+  border-radius: 3rem;
+  border: 3px solid #2b3e34;
+  justify-content: space-evenly;
+  align-items: center;
+  text-align: center;
+  font-size: var(--bob-font-size);
 }
-@media (max-width: 600px) {
-  :root {
-    --bob-font-size: 1rem;
-  }
+
+.automation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  width: 50%;
+  margin: 0;
+  height: 30%;
+}
+
+.automation-card {
+  background: white;
+  border: 2px solid #2b3e34;
+  border-radius: 1.5rem;
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.automation-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.automation-card h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+}
+
+.automation-card label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.automation-card input[type='number'] {
+  width: 100%;
+  padding: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  width: 90%;
+  height: 50%;
+}
+
+.device-card {
+  border-radius: 3rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.device-card:hover {
+  transform: scale(1.02);
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  padding: 0.8rem 1.2rem;
+  border-radius: 2rem;
+  font-size: 1.2rem;
+  min-width: 60px;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+input[type='range'] {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.overviewTxt {
+  margin: 0;
+  font-weight: 500;
+}
+
+.overviewTxt span {
+  font-weight: 700;
+  color: #2b3e34;
 }
 </style>
