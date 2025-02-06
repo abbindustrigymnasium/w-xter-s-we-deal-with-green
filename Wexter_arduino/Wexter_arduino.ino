@@ -179,7 +179,6 @@ void checkAutomation() {
         if (!Firebase.getBool(firebaseData, "/fan/status") || !firebaseData.boolData()) {
           Firebase.setBool(firebaseData, "/fan/status", true);
         }
-        // Add similar logic for automatic power adjustment
       } else {
         Firebase.setBool(firebaseData, "/fan/status", false);
       }
@@ -187,17 +186,30 @@ void checkAutomation() {
   }
 
   // Hatch automation
-  if (Firebase.getBool(firebaseData, "/automation/hatch/enabled") && firebaseData.boolData()) {
+if (Firebase.getBool(firebaseData, "/automation/hatch/enabled") && firebaseData.boolData()) {
     float humThreshold;
     if (Firebase.getFloat(firebaseData, "/automation/hatch/humThreshold")) {
-      humThreshold = firebaseData.floatData();
-      
-      bool newHatchStatus = am2320_sensor.getHumidity() > humThreshold;
-      if (newHatchStatus != Firebase.getBool(firebaseData, "/hatch/status")) {
-        Firebase.setBool(firebaseData, "/hatch/status", newHatchStatus);
-      }
+        humThreshold = firebaseData.floatData();
+        
+        static bool lastHumidityAbove = false;
+        float currentHumidity = am2320_sensor.getHumidity();
+        bool currentHumidityAbove = currentHumidity > humThreshold;
+
+        if (currentHumidityAbove != lastHumidityAbove) {
+           bool currentHatchStatus;
+          if (Firebase.getBool(firebaseData, "/hatch/status")) {
+            currentHatchStatus = firebaseData.boolData();
+          } else {
+            Serial.println("Error reading hatch status");
+            return; // Skip update if read fails
+          }
+            if (currentHatchStatus != currentHumidityAbove) {
+                Firebase.setBool(firebaseData, "/hatch/status", currentHumidityAbove);
+            }
+            lastHumidityAbove = currentHumidityAbove;
+        }
     }
-  }
+}
 
   // Pump automation
   if (Firebase.getBool(firebaseData, "/automation/pump/enabled") && firebaseData.boolData()) {
