@@ -30,7 +30,7 @@
       <div class="image-container">
         <img :src="images[2]" alt="Alvinspic" class="image" />
         <div class="overlay">
-          <p class="overlay-text">Alvin Gustafsson<br />16 years old<br />I like hardware</p>
+          <p class="overlay-text">Alvin Gustafsson<br />16 years old<br />I like hardware and Programming</p>
         </div>
       </div>
     </div>

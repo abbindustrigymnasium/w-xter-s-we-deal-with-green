@@ -165,8 +165,80 @@ void readAndSendSensorData() {
   }
 }
 
+unsigned long pumpStartTime = 0;
+bool pumpRunning = false;
+
+void checkAutomation() {
+  // Fan automation
+  if (Firebase.getBool(firebaseData, "/automation/fan/enabled") && firebaseData.boolData()) {
+    float tempThreshold;
+    if (Firebase.getFloat(firebaseData, "/automation/fan/tempThreshold")) {
+      tempThreshold = firebaseData.floatData();
+      
+      if (am2320_sensor.getTemperature() > tempThreshold) {
+        if (!Firebase.getBool(firebaseData, "/fan/status") || !firebaseData.boolData()) {
+          Firebase.setBool(firebaseData, "/fan/status", true);
+        }
+      } else {
+        Firebase.setBool(firebaseData, "/fan/status", false);
+      }
+    }
+  }
+
+  // Hatch automation
+if (Firebase.getBool(firebaseData, "/automation/hatch/enabled") && firebaseData.boolData()) {
+    float humThreshold;
+    if (Firebase.getFloat(firebaseData, "/automation/hatch/humThreshold")) {
+        humThreshold = firebaseData.floatData();
+        
+        static bool lastHumidityAbove = false;
+        float currentHumidity = am2320_sensor.getHumidity();
+        bool currentHumidityAbove = currentHumidity > humThreshold;
+
+        if (currentHumidityAbove != lastHumidityAbove) {
+           bool currentHatchStatus;
+          if (Firebase.getBool(firebaseData, "/hatch/status")) {
+            currentHatchStatus = firebaseData.boolData();
+          } else {
+            Serial.println("Error reading hatch status");
+            return; // Skip update if read fails
+          }
+            if (currentHatchStatus != currentHumidityAbove) {
+                Firebase.setBool(firebaseData, "/hatch/status", currentHumidityAbove);
+            }
+            lastHumidityAbove = currentHumidityAbove;
+        }
+    }
+}
+
+  // Pump automation
+  if (Firebase.getBool(firebaseData, "/automation/pump/enabled") && firebaseData.boolData()) {
+    unsigned long currentMillis = millis();
+    int pumpDuration, pumpInterval;
+    
+    if (Firebase.getInt(firebaseData, "/automation/pump/duration")) {
+      pumpDuration = firebaseData.intData();
+    }
+    if (Firebase.getInt(firebaseData, "/automation/pump/interval")) {
+      pumpInterval = firebaseData.intData();
+    }
+
+    if (!pumpRunning && (currentMillis - pumpStartTime >= pumpInterval)) {
+      pumpStartTime = currentMillis;
+      pumpRunning = true;
+      Firebase.setBool(firebaseData, "/pump/status", true);
+    }
+    
+    if (pumpRunning && (currentMillis - pumpStartTime >= pumpDuration)) {
+      pumpRunning = false;
+      Firebase.setBool(firebaseData, "/pump/status", false);
+    }
+  }
+}
+
 void loop() {
   readAndSendSensorData();
+  checkAutomation();  // Add this line
   controlServo();
   controlPump(fetchPumpDirection(), fetchPumpPower());
   controlMotor(fetchMotorDirection(), fetchMotorPower());
