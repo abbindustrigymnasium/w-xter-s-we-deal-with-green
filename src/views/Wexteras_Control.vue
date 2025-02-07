@@ -71,10 +71,18 @@
     <!-- Device Controls -->
     <div class="bottomRow">
       <!-- Fan Control -->
-      <div v-if="fanData" :style="getColor(fanData.status)" class="device-boxes">
+      <div 
+        v-if="fanData" 
+        :style="fanAutomation.enabled ? { backgroundColor: '#808080' } : getColor(fanData.status)" 
+        class="device-boxes"
+      >
         <h3>Fan</h3>
         <p>Status: {{ fanData.status ? 'ON' : 'OFF' }}</p>
-        <button @click="toggleFanStatus" :style="btnColor(fanData.status)">⏻</button>
+        <button 
+          @click="toggleFanStatus" 
+          :style="btnColor(fanData.status, fanAutomation.enabled)"
+          :disabled="fanAutomation.enabled"
+        >⏻</button>
         <div v-if="fanData.status">
           <p>Power: {{ fanData.power }}%</p>
           <input
@@ -83,22 +91,39 @@
             min="0"
             max="100"
             @change="updateFanPower"
+            :disabled="fanAutomation.enabled"
           />
         </div>
       </div>
 
       <!-- Hatch Control -->
-      <div v-if="hatchData" :style="getColor(hatchData.status)" class="device-boxes">
+      <div 
+        v-if="hatchData" 
+        :style="hatchAutomation.enabled ? { backgroundColor: '#808080' } : getColor(hatchData.status)" 
+        class="device-boxes"
+      >
         <h3>Door</h3>
         <p>Status: {{ hatchData.status ? 'OPEN' : 'CLOSED' }}</p>
-        <button @click="toggleHatchStatus" :style="btnColor(hatchData.status)">⏻</button>
+        <button 
+          @click="toggleHatchStatus" 
+          :style="btnColor(hatchData.status, hatchAutomation.enabled)"
+          :disabled="hatchAutomation.enabled"
+        >⏻</button>
       </div>
 
       <!-- Pump Control -->
-      <div v-if="pumpData" :style="getColor(pumpData.status)" class="device-boxes">
+      <div 
+        v-if="pumpData" 
+        :style="pumpAutomation.enabled ? { backgroundColor: '#808080' } : getColor(pumpData.status)" 
+        class="device-boxes"
+      >
         <h3>Pump</h3>
         <p>Status: {{ pumpData.status ? 'ON' : 'OFF' }}</p>
-        <button @click="togglePumpStatus" :style="btnColor(pumpData.status)">⏻</button>
+        <button 
+          @click="togglePumpStatus" 
+          :style="btnColor(pumpData.status, pumpAutomation.enabled)"
+          :disabled="pumpAutomation.enabled"
+        >⏻</button>
         <div v-if="pumpData.status">
           <p>Power: {{ pumpData.power }}%</p>
           <input
@@ -107,6 +132,7 @@
             min="0"
             max="100"
             @change="updatePumpPower"
+            :disabled="pumpAutomation.enabled"
           />
         </div>
       </div>
@@ -187,22 +213,34 @@ export default {
       await set(ref(db, '/automation/fan'), {
         enabled: this.fanAutomation.enabled,
         tempThreshold: this.fanAutomation.tempThreshold,
-      })
+      });
+      if (this.fanAutomation.enabled) {
+        await set(ref(db, '/fan/status'), false); 
+        this.fanData.status = false;
+      }
     },
 
     async updateHatchAutomation() {
       await set(ref(db, '/automation/hatch'), {
         enabled: this.hatchAutomation.enabled,
         humThreshold: this.hatchAutomation.humThreshold,
-      })
+      });
+      if (this.hatchAutomation.enabled) {
+        await set(ref(db, '/hatch/status'), false); 
+        this.hatchData.status = false;
+      }
     },
 
     async updatePumpAutomation() {
       await set(ref(db, '/automation/pump'), {
         enabled: this.pumpAutomation.enabled,
-        duration: this.pumpAutomation.duration * 60000, // Convert minutes to ms
+        duration: this.pumpAutomation.duration * 60000,
         interval: this.pumpAutomation.interval * 60000,
-      })
+      });
+      if (this.pumpAutomation.enabled) {
+        await set(ref(db, '/pump/status'), false); 
+        this.pumpData.status = false;
+      }
     },
 
     // Existing device control methods
@@ -239,11 +277,14 @@ export default {
       }
     },
 
-    btnColor(status) {
-      return {
-        backgroundColor: status ? '#E57373' : '#5EAF5B',
-      }
-    },
+    btnColor(status, automationEnabled) {
+    if (automationEnabled) {
+      return { backgroundColor: '#808080' };
+    }
+    return {
+      backgroundColor: status ? '#E57373' : '#5EAF5B',
+    };
+  },
 
     // Real-time updates
     setupListeners() {
@@ -399,5 +440,15 @@ h3 {
 .overviewTxt span {
   font-weight: 700;
   color: rgba(43, 62, 52, 1);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+input:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 </style>
