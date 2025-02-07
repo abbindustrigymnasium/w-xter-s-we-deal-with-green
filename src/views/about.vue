@@ -124,4 +124,13 @@ span {
     justify-content: space-evenly;
   }
 }
+
+@media (max-height: 529px) {
+  #upperRow {
+    display: none !important;
+  }
+  #bottomRow {
+    height: 100% !important;
+  }
+}
 </style>

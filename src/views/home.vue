@@ -17,14 +17,7 @@
   </div>
   <div
     class="middleRow"
-    style="
-      display: flex;
-      flex-direction: row;
-      justify-content: space-evenly;
-      width: 100%;
-      height: 30%;
-      overflow-y: auto;
-    "
+    style="display: flex; flex-direction: row; width: 100%; height: 30%; /* overflow-y: auto; */"
   >
     <div class="Txt">
       <h3>Fan</h3>
@@ -92,12 +85,27 @@ p {
   height: 10%;
 }
 
+.Txt {
+  display: flex;
+  justify-content: flex-start;
+}
+
 @media (max-width: 500px) {
   #title {
     font-size: 3rem;
   }
   .Txt h3 {
     font-size: 1.5rem;
+  }
+  .middleRow {
+    height: 50% !important;
+    overflow-y: auto;
+  }
+}
+
+@media (max-height: 600px) {
+  .middleRow {
+    overflow-y: auto;
   }
 }
 </style>

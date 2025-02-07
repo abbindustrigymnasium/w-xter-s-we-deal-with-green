@@ -59,7 +59,7 @@ nav {
   border-radius: 2rem;
   border: 3px solid rgb(43, 62, 52);
   width: 100%;
-  height: 5vh;
+  height: 5%;
   justify-content: space-around;
   align-items: center;
   background-color: rgba(94, 175, 91, 1);
